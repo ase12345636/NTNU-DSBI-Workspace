@@ -9,7 +9,7 @@ def raw(adata, out_path, batch, celltype):
     sc.tl.pca(adata)
 
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    np.save(f"{out_path}_emb.npy", adata.obsm['X_emb'])
+    np.save(f"{out_path}_emb.npy", adata.obsm['X_pca'])
 
     plot(adata, "X_pca", batch, celltype, out_path)
     return adata
