@@ -46,23 +46,24 @@ def evaluate_from_embeddings(
 
 
 if __name__ == "__main__":
-	data = "/Group16T/raw_data/scCobra/Immune_ALL_human.h5ad"
-	out_path = "/Group16T/common/ccuc/scCobra/result/immune/"
-	batch = 'batch'
-	celltype = 'final_annotation'
-	df, csv_path = evaluate_from_embeddings(data, out_path, batch, celltype)
+	for i in range (5):
+		data = "/Group16T/raw_data/scCobra/Immune_ALL_human.h5ad"
+		out_path = f"/Group16T/common/ccuc/scCobra/result/immune/{i}/"
+		batch = 'batch'
+		celltype = 'final_annotation'
+		df, csv_path = evaluate_from_embeddings(data, out_path, batch, celltype)
 
-	data = "/Group16T/raw_data/scCobra/Lung_atlas_public.h5ad"
-	out_path = "/Group16T/common/ccuc/scCobra/result/lung/"
-	batch = 'batch'
-	celltype = 'cell_type'
-	df, csv_path = evaluate_from_embeddings(data, out_path, batch, celltype)
+		data = "/Group16T/raw_data/scCobra/Lung_atlas_public.h5ad"
+		out_path = f"/Group16T/common/ccuc/scCobra/result/lung/{i}/"
+		batch = 'batch'
+		celltype = 'cell_type'
+		df, csv_path = evaluate_from_embeddings(data, out_path, batch, celltype)
 
-	data = "/Group16T/raw_data/scCobra/human_pancreas_norm_complexBatch.h5ad"
-	out_path = "/Group16T/common/ccuc/scCobra/result/pancreas/"
-	batch = 'tech'
-	celltype = 'celltype'
-	df, csv_path = evaluate_from_embeddings(data, out_path, batch, celltype)
+		data = "/Group16T/raw_data/scCobra/human_pancreas_norm_complexBatch.h5ad"
+		out_path = f"/Group16T/common/ccuc/scCobra/result/pancreas/{i}/"
+		batch = 'tech'
+		celltype = 'celltype'
+		df, csv_path = evaluate_from_embeddings(data, out_path, batch, celltype)
 	
 	
 
