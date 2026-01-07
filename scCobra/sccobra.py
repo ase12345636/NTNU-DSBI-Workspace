@@ -23,7 +23,6 @@ parser.add_argument('--run_times', type=int, default=1, help='Number of times to
 args = parser.parse_args()
 
 os.makedirs(args.save_path, exist_ok=True)
-run_out_path = os.path.join(args.save_path, f"scCobra/")
 print(f"Loading data from {args.dataset_path}")
 adata_raw = sc.read_h5ad(args.dataset_path)
 
@@ -34,8 +33,7 @@ for run_id in range(1, args.run_times + 1):
 
     seed = int(time.time() * 1000000) % (2**31)
     np.random.seed(seed)
-
-    run_out_path = os.path.join(run_out_path, f"{run_id}/")
+    run_out_path = os.path.join(args.save_path, f"scCobra/{run_id}/")
     os.makedirs(run_out_path, exist_ok=True)
 
     adata, X, y, b = preprocess_adata(adata_raw.copy(), args.celltype_key, args.batch_key)
@@ -47,6 +45,8 @@ for run_id in range(1, args.run_times + 1):
     print("Running scCobra batch correction...")
     print(f"{'='*60}\n")
 
+    # Start timing
+    start_time = time.time()
     adata = scCobra(
         adata,
         batch_name=args.batch_key,
@@ -57,7 +57,7 @@ for run_id in range(1, args.run_times + 1):
         ignore_umap=True,
         seed=seed
     )
-
+    end_time = time.time()
     # UMAP
     sc.pp.neighbors(adata, use_rep='latent', random_state=seed)
     sc.tl.umap(adata)
@@ -80,30 +80,48 @@ for run_id in range(1, args.run_times + 1):
     best_resolution = leiden_results['best_resolution']
 
     # Plot UMAPs
+    fig, ax = plt.subplots(figsize=(6, 6))
     sc.pl.umap(
         adata, 
         color=[args.batch_key], 
         save=None,
-        show=False
+        show=False,
+        frameon=False,
+        title='',
+        ax=ax
     )
+    ax.set_xlabel('')
+    ax.set_ylabel('')
     plt.savefig(f"{run_out_path}/scCobra_umap_batch.png", dpi=300, bbox_inches='tight')
     plt.close()
 
+    fig, ax = plt.subplots(figsize=(6, 6))
     sc.pl.umap(
         adata, 
         color=[args.celltype_key], 
         save=None,
-        show=False
+        show=False,
+        frameon=False,
+        title='',
+        ax=ax
     )
+    ax.set_xlabel('')
+    ax.set_ylabel('')
     plt.savefig(f"{run_out_path}/scCobra_umap_celltype.png", dpi=300, bbox_inches='tight')
     plt.close()
 
+    fig, ax = plt.subplots(figsize=(6, 6))
     sc.pl.umap(
         adata, 
         color=['leiden'], 
         save=None,
-        show=False
+        show=False,
+        frameon=False,
+        title='',
+        ax=ax
     )
+    ax.set_xlabel('')
+    ax.set_ylabel('')
     plt.savefig(f"{run_out_path}/scCobra_umap_leiden.png", dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -116,11 +134,16 @@ for run_id in range(1, args.run_times + 1):
                                         leiden_resolution=best_resolution,
                                         random_state=seed
                                         )
+    
+    # Add runtime to metrics
+    runtime = end_time - start_time
+    metrics_scCobra['runtime_seconds'] = runtime
     metrics_scCobra['best_leiden_resolution'] = best_resolution
     metrics_df = pd.DataFrame([metrics_scCobra])
     metrics_df.to_csv(os.path.join(run_out_path, "scCobra_metrics.csv"), index=False)
 
     print(f"\n[Seed {seed}] scCobra metrics (with best resolution {best_resolution:.1f}):")
+    print(f"  Runtime: {runtime:.2f} seconds")
     print(f"  NMI={metrics_scCobra['NMI']:.4f}, ARI={metrics_scCobra['ARI']:.4f}")
     print(f"  ASW_bio={metrics_scCobra['ASW_bio']:.4f}, ASW_batch={metrics_scCobra['ASW_batch']:.4f}")
     print(f"  AVG_bio={metrics_scCobra['AVG_bio']:.4f}, AVG_batch={metrics_scCobra['AVG_batch']:.4f}")

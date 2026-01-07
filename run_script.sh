@@ -54,7 +54,8 @@ python raw/raw.py \
     --dataset_path "$dataset_path" \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
-    --celltype_key "$celltype_key"
+    --celltype_key "$celltype_key" \
+    --run_times "$n_runs"
 
 echo "Running Harmony batch correction"
 python Harmony/Harmony.py \
@@ -66,6 +67,21 @@ python Harmony/Harmony.py \
 
 echo "Running scVi batch correction"
 python scVi/scVi.py \
+    --dataset_path "$dataset_path" \
+    --save_path "$save_path" \
+    --batch_key "$batch_key" \
+    --celltype_key "$celltype_key" \
+    --run_times "$n_runs"
+
+echo "Running Scanorama batch correction"
+python Scanorama/Scanorama.py \
+    --dataset_path "$dataset_path" \
+    --save_path "$save_path" \
+    --batch_key "$batch_key" \
+    --celltype_key "$celltype_key" \
+    --run_times "$n_runs"
+
+python Seurat/Seurat.py \
     --dataset_path "$dataset_path" \
     --save_path "$save_path" \
     --batch_key "$batch_key" \

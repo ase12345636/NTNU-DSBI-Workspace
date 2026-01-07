@@ -213,10 +213,10 @@ def evaluate_embedding_scib(ad_tmp, embed_key="X_supcon", batch_key="batch", cel
     if "X_pca" not in ad_tmp.obsm: 
         sc.pp.pca(ad_tmp)
     # 取得原始 PCA 的 OC 作為 baseline
-    oc_raw = compute_overcorrection_from_adata(ad_tmp, embed_key="X_pca", celltype_col=celltype_key)
+    oc_raw = compute_overcorrection_from_adata(ad_tmp, embed_key="X_pca", celltype_col=celltype_key, batch_col=batch_key)
     # 計算當前 Embedding 的 OC 並與 baseline 相減
     results["OverCorrection"] = compute_overcorrection_from_adata(
-        ad_tmp, embed_key=embed_key, celltype_col=celltype_key, baseline=oc_raw
+        ad_tmp, embed_key=embed_key, celltype_col=celltype_key, batch_col=batch_key, baseline=oc_raw
     )
 
     return results

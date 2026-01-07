@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 import matplotlib.pyplot as plt
-import scvi
+import scanorama
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -14,7 +14,7 @@ from utils.dataset import preprocess_adata
 from utils.evaluation import evaluate_embedding_scib
 from utils.function import find_best_leiden_resolution
 
-parser = argparse.ArgumentParser(description='Run scVi batch correction')
+parser = argparse.ArgumentParser(description='Run Scanorama batch correction')
 parser.add_argument('--dataset_path', type=str, required=True, help='Path to input h5ad file')
 parser.add_argument('--save_path', type=str, required=True, help='Path to save results')
 parser.add_argument('--batch_key', type=str, default='batch', help='Batch column name')
@@ -33,8 +33,7 @@ for run_id in range(1, args.run_times + 1):
 
     seed = int(time.time() * 1000000) % (2**31)
     np.random.seed(seed)
-
-    run_out_path = os.path.join(args.save_path, f"scVi/{run_id}/")
+    run_out_path = os.path.join(args.save_path, f"scanorama/{run_id}/")
     os.makedirs(run_out_path, exist_ok=True)
 
     adata, X, y, b = preprocess_adata(adata_raw.copy(), args.celltype_key, args.batch_key)
@@ -43,21 +42,22 @@ for run_id in range(1, args.run_times + 1):
     sc.tl.pca(adata, random_state=seed)
 
     print(f"\n{'='*60}")
-    print("Running scVi batch correction...")
+    print("Running Scanorama batch correction...")
     print(f"{'='*60}\n")
 
-    # Start timing
     start_time = time.time()
-
-    scvi.settings.seed = seed
-    scvi.model.SCVI.setup_anndata(adata, batch_key = args.batch_key)
-    model = scvi.model.SCVI(adata)
-    model.train()
-    adata.obsm["X_scVI"] = model.get_latent_representation()
-    # End timing (only scVi + neighbors)
+    # Split data by batch for Scanorama
+    adata_ls = []
+    for batch in np.unique(adata.obs[args.batch_key]):
+        sep_batch = adata[adata.obs[args.batch_key] == batch, :].copy()
+        adata_ls.append(sep_batch)
+    
+    corrected = scanorama.correct_scanpy(adata_ls, seed=seed, return_dimred=True)
+    # Concatenate corrected batches
+    adata = sc.concat(corrected)
     end_time = time.time()
     # UMAP
-    sc.pp.neighbors(adata, use_rep='X_scVI', random_state=seed)    
+    sc.pp.neighbors(adata, use_rep='X_scanorama', random_state=seed)
     sc.tl.umap(adata)
     umap_df = pd.DataFrame(adata.obsm['X_umap'], columns=['UMAP1', 'UMAP2'])
     umap_df['batch'] = adata.obs[args.batch_key].values
@@ -90,7 +90,7 @@ for run_id in range(1, args.run_times + 1):
     )
     ax.set_xlabel('')
     ax.set_ylabel('')
-    plt.savefig(f"{run_out_path}/scVi_umap_batch.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{run_out_path}/scanorama_umap_batch.png", dpi=300, bbox_inches='tight')
     plt.close()
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -105,7 +105,7 @@ for run_id in range(1, args.run_times + 1):
     )
     ax.set_xlabel('')
     ax.set_ylabel('')
-    plt.savefig(f"{run_out_path}/scVi_umap_celltype.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{run_out_path}/scanorama_umap_celltype.png", dpi=300, bbox_inches='tight')
     plt.close()
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -120,13 +120,13 @@ for run_id in range(1, args.run_times + 1):
     )
     ax.set_xlabel('')
     ax.set_ylabel('')
-    plt.savefig(f"{run_out_path}/scVi_umap_leiden.png", dpi=300, bbox_inches='tight')
+    plt.savefig(f"{run_out_path}/scanorama_umap_leiden.png", dpi=300, bbox_inches='tight')
     plt.close()
 
     # Evaluate
-    metrics_scVi = evaluate_embedding_scib(
+    metrics_scanorama = evaluate_embedding_scib(
                                         adata, 
-                                        embed_key="X_scVI", 
+                                        embed_key="X_scanorama", 
                                         batch_key=args.batch_key, 
                                         celltype_key=args.celltype_key, 
                                         leiden_resolution=best_resolution,
@@ -135,16 +135,16 @@ for run_id in range(1, args.run_times + 1):
     
     # Add runtime to metrics
     runtime = end_time - start_time
-    metrics_scVi['runtime_seconds'] = runtime
-    metrics_scVi['best_leiden_resolution'] = best_resolution
-    metrics_df = pd.DataFrame([metrics_scVi])
-    metrics_df.to_csv(os.path.join(run_out_path, "scVi_metrics.csv"), index=False)
+    metrics_scanorama['runtime_seconds'] = runtime
+    metrics_scanorama['best_leiden_resolution'] = best_resolution
+    metrics_df = pd.DataFrame([metrics_scanorama])
+    metrics_df.to_csv(os.path.join(run_out_path, "scanorama_metrics.csv"), index=False)
 
-    print(f"\n[Seed {seed}] scVi metrics (with best resolution {best_resolution:.1f}):")
+    print(f"\n[Seed {seed}] Scanorama metrics (with best resolution {best_resolution:.1f}):")
     print(f"  Runtime: {runtime:.2f} seconds")
-    print(f"  NMI={metrics_scVi['NMI']:.4f}, ARI={metrics_scVi['ARI']:.4f}")
-    print(f"  ASW_bio={metrics_scVi['ASW_bio']:.4f}, ASW_batch={metrics_scVi['ASW_batch']:.4f}")
-    print(f"  AVG_bio={metrics_scVi['AVG_bio']:.4f}, AVG_batch={metrics_scVi['AVG_batch']:.4f}")
+    print(f"  NMI={metrics_scanorama['NMI']:.4f}, ARI={metrics_scanorama['ARI']:.4f}")
+    print(f"  ASW_bio={metrics_scanorama['ASW_bio']:.4f}, ASW_batch={metrics_scanorama['ASW_batch']:.4f}")
+    print(f"  AVG_bio={metrics_scanorama['AVG_bio']:.4f}, AVG_batch={metrics_scanorama['AVG_batch']:.4f}")
     print(f"Results saved to {run_out_path}")
 
 print(f"\n{'='*60}")

@@ -23,7 +23,6 @@ parser.add_argument('--run_times', type=int, default=1, help='Number of times to
 args = parser.parse_args()
 
 os.makedirs(args.save_path, exist_ok=True)
-run_out_path = os.path.join(args.save_path, f"harmony/")
 print(f"Loading data from {args.dataset_path}")
 adata_raw = sc.read_h5ad(args.dataset_path)
 
@@ -35,7 +34,7 @@ for run_id in range(1, args.run_times + 1):
     seed = int(time.time() * 1000000) % (2**31)
     np.random.seed(seed)
 
-    run_out_path = os.path.join(run_out_path, f"{run_id}/")
+    run_out_path = os.path.join(args.save_path, f"harmony/{run_id}/")
     os.makedirs(run_out_path, exist_ok=True)
 
     adata, X, y, b = preprocess_adata(adata_raw.copy(), args.celltype_key, args.batch_key)
@@ -47,6 +46,8 @@ for run_id in range(1, args.run_times + 1):
     print("Running Harmony batch correction...")
     print(f"{'='*60}\n")
 
+    # Start timing
+    start_time = time.time()
     adata.obsm['X_pca_harmony'] = harmonize(
         adata.obsm['X_pca'],
         adata.obs,
@@ -54,9 +55,10 @@ for run_id in range(1, args.run_times + 1):
         random_state=seed,
         use_gpu=True
     )
-
+    end_time = time.time()
+    
     # UMAP
-    sc.pp.neighbors(adata, use_rep='X_pca_harmony', random_state=seed)
+    sc.pp.neighbors(adata, use_rep='X_pca_harmony', random_state=seed)    
     sc.tl.umap(adata)
     umap_df = pd.DataFrame(adata.obsm['X_umap'], columns=['UMAP1', 'UMAP2'])
     umap_df['batch'] = adata.obs[args.batch_key].values
@@ -77,30 +79,48 @@ for run_id in range(1, args.run_times + 1):
     best_resolution = leiden_results['best_resolution']
 
     # Plot UMAPs
+    fig, ax = plt.subplots(figsize=(6, 6))
     sc.pl.umap(
         adata, 
         color=[args.batch_key], 
         save=None,
-        show=False
+        show=False,
+        frameon=False,
+        title='',
+        ax=ax
     )
+    ax.set_xlabel('')
+    ax.set_ylabel('')
     plt.savefig(f"{run_out_path}/harmony_umap_batch.png", dpi=300, bbox_inches='tight')
     plt.close()
 
+    fig, ax = plt.subplots(figsize=(6, 6))
     sc.pl.umap(
         adata, 
         color=[args.celltype_key], 
         save=None,
-        show=False
+        show=False,
+        frameon=False,
+        title='',
+        ax=ax
     )
+    ax.set_xlabel('')
+    ax.set_ylabel('')
     plt.savefig(f"{run_out_path}/harmony_umap_celltype.png", dpi=300, bbox_inches='tight')
     plt.close()
 
+    fig, ax = plt.subplots(figsize=(6, 6))
     sc.pl.umap(
         adata, 
         color=['leiden'], 
         save=None,
-        show=False
+        show=False,
+        frameon=False,
+        title='',
+        ax=ax
     )
+    ax.set_xlabel('')
+    ax.set_ylabel('')
     plt.savefig(f"{run_out_path}/harmony_umap_leiden.png", dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -113,11 +133,16 @@ for run_id in range(1, args.run_times + 1):
                                         leiden_resolution=best_resolution,
                                         random_state=seed
                                         )
+    
+    # Add runtime to metrics
+    runtime = end_time - start_time
+    metrics_harmony['runtime_seconds'] = runtime
     metrics_harmony['best_leiden_resolution'] = best_resolution
     metrics_df = pd.DataFrame([metrics_harmony])
     metrics_df.to_csv(os.path.join(run_out_path, "harmony_metrics.csv"), index=False)
 
     print(f"\n[Seed {seed}] Harmony metrics (with best resolution {best_resolution:.1f}):")
+    print(f"  Runtime: {runtime:.2f} seconds")
     print(f"  NMI={metrics_harmony['NMI']:.4f}, ARI={metrics_harmony['ARI']:.4f}")
     print(f"  ASW_bio={metrics_harmony['ASW_bio']:.4f}, ASW_batch={metrics_harmony['ASW_batch']:.4f}")
     print(f"  AVG_bio={metrics_harmony['AVG_bio']:.4f}, AVG_batch={metrics_harmony['AVG_batch']:.4f}")

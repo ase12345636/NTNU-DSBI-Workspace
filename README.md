@@ -25,6 +25,40 @@ celltype = 'celltype'
 ```
 
 ## Method install
+### Basic
+```
+pip install scanpy
+pip install scipy
+conda install pyarrow fastparquet
+```
+
+### Harmony
+```
+pip install harmony-pytorch
+pip install harmonypy
+```
+
+### scVi
+```
+pip install scvi-tools
+```
+
+### Scanorama
+```
+pip install scanorama
+```
+
+### Seurat
+#### Conda
+```
+conda install -c conda-forge r-base==4.3 r-essential
+conda install -c conda-forge \
+  r-matrix r-mass r-seurat r-seuratobject r-sctransform r-fitdistrplus r-igraph r-irlba r-rspectra r-uwot
+```
+#### R
+```
+install.packages(c("spatstat.geom", "spatstat.explore", "argparse", "reticulate", "aricode", "feather"))
+```
 
 ### scDML
 ```
@@ -34,34 +68,10 @@ cd scDML
 pip install .
 ```
 
-### Harmony
+### scCobra
 ```
-pip install harmony-pytorch
-```
-
-### scVi
-```
-pip install scvi-tools
-```
-
-### Metric
-From scDML github.<br>
-https://github.com/eleozzr/scDML<br>
-under scDML/scDML<br>
-Need to download three file
-- batchKL.R
-- calLISI.R
-- metric.py
-
-System need R language package amd install some R package
-```
-install.packages(c("nabor", "FNN", "Rcpp"), repos="http://cran.us.r-project.org")
-install.packages("remotes", repos="http://cran.us.r-project.org")
-remotes::install_github("immunogenomics/LISI")
-```
-
-In my work, I need to delete some lib in conda.
-```
-cd /Group16T/common/ccuc/miniconda3/envs/sctools/lib
-mv libstdc++.so.6 libstdc++.so.6.bak
+conda create -n scCobra conda-forge::python=3.10 conda-forge::ipykernel 
+pip install scanpy scib
+pip3 install torch torchvision torchaudio torch_optimizer
+git clone https://github.com/mcgilldinglab/scCobra.git
 ```
