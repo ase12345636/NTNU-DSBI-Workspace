@@ -29,6 +29,7 @@ celltype = 'celltype'
 ```
 pip install scanpy
 pip install scipy
+pip install igraph leidenalg
 conda install pyarrow fastparquet
 ```
 
@@ -66,6 +67,7 @@ conda create -n scDML python==3.8.12
 git clone https://github.com/eleozzr/scDML
 cd scDML
 pip install .
+pip install igraph leidenalg 
 ```
 
 ### scCobra
@@ -73,5 +75,6 @@ pip install .
 conda create -n scCobra conda-forge::python=3.10 conda-forge::ipykernel 
 pip install scanpy scib
 pip3 install torch torchvision torchaudio torch_optimizer
+pip3 install igraph leidenalg
 git clone https://github.com/mcgilldinglab/scCobra.git
 ```
