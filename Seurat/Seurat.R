@@ -9,7 +9,7 @@ suppressPackageStartupMessages({
 })
 
 # Set multiprocessing
-options(future.globals.maxSize = 32 * 1024^3)
+options(future.globals.maxSize = Inf)
 plan("multicore", workers = 8)
 
 parser <- ArgumentParser(description='Run Seurat v5 batch correction')
