@@ -49,37 +49,37 @@ echo "Save path: $save_path"
 echo "Batch key: $batch_key"
 echo "Celltype key: $celltype_key"
 
-echo "Running Raw (PCA) batch correction"
-python raw/raw.py \
-    --dataset_path "$dataset_path" \
-    --save_path "$save_path" \
-    --batch_key "$batch_key" \
-    --celltype_key "$celltype_key" \
-    --run_times "$n_runs"
+# echo "Running Raw (PCA) batch correction"
+# python raw/raw.py \
+#     --dataset_path "$dataset_path" \
+#     --save_path "$save_path" \
+#     --batch_key "$batch_key" \
+#     --celltype_key "$celltype_key" \
+#     --run_times "$n_runs"
 
-echo "Running Harmony batch correction"
-python Harmony/Harmony.py \
-    --dataset_path "$dataset_path" \
-    --save_path "$save_path" \
-    --batch_key "$batch_key" \
-    --celltype_key "$celltype_key" \
-    --run_times "$n_runs"
+# echo "Running Harmony batch correction"
+# python Harmony/Harmony.py \
+#     --dataset_path "$dataset_path" \
+#     --save_path "$save_path" \
+#     --batch_key "$batch_key" \
+#     --celltype_key "$celltype_key" \
+#     --run_times "$n_runs"
 
-echo "Running scVi batch correction"
-python scVi/scVi.py \
-    --dataset_path "$dataset_path" \
-    --save_path "$save_path" \
-    --batch_key "$batch_key" \
-    --celltype_key "$celltype_key" \
-    --run_times "$n_runs"
+# echo "Running scVi batch correction"
+# python scVi/scVi.py \
+#     --dataset_path "$dataset_path" \
+#     --save_path "$save_path" \
+#     --batch_key "$batch_key" \
+#     --celltype_key "$celltype_key" \
+#     --run_times "$n_runs"
 
-echo "Running Scanorama batch correction"
-python Scanorama/Scanorama.py \
-    --dataset_path "$dataset_path" \
-    --save_path "$save_path" \
-    --batch_key "$batch_key" \
-    --celltype_key "$celltype_key" \
-    --run_times "$n_runs"
+# echo "Running Scanorama batch correction"
+# python Scanorama/Scanorama.py \
+#     --dataset_path "$dataset_path" \
+#     --save_path "$save_path" \
+#     --batch_key "$batch_key" \
+#     --celltype_key "$celltype_key" \
+#     --run_times "$n_runs"
 
 python Seurat/Seurat.py \
     --dataset_path "$dataset_path" \
@@ -88,20 +88,20 @@ python Seurat/Seurat.py \
     --celltype_key "$celltype_key" \
     --run_times "$n_runs"
 
-conda activate scDML
-echo "Running scDML batch correction"
-python scDML/scDMl.py \
-    --dataset_path "$dataset_path" \
-    --save_path "$save_path" \
-    --batch_key "$batch_key" \
-    --celltype_key "$celltype_key" \
-    --run_times "$n_runs"
+# conda activate scDML
+# echo "Running scDML batch correction"
+# python scDML/scDMl.py \
+#     --dataset_path "$dataset_path" \
+#     --save_path "$save_path" \
+#     --batch_key "$batch_key" \
+#     --celltype_key "$celltype_key" \
+#     --run_times "$n_runs"
 
-conda activate scCobra
-echo "Running scCobra batch correction"
-python scCobra/sccobra.py \
-    --dataset_path "$dataset_path" \
-    --save_path "$save_path" \
-    --batch_key "$batch_key" \
-    --celltype_key "$celltype_key" \
-    --run_times "$n_runs"
+# conda activate scCobra
+# echo "Running scCobra batch correction"
+# python scCobra/sccobra.py \
+#     --dataset_path "$dataset_path" \
+#     --save_path "$save_path" \
+#     --batch_key "$batch_key" \
+#     --celltype_key "$celltype_key" \
+#     --run_times "$n_runs"
