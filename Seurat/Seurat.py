@@ -89,6 +89,12 @@ for run_id in range(1, args.run_times + 1):
     print(f"{'='*60}\n")
     
     subprocess.run(cmd, check=True)
+    
+    # Read runtime from R script
+    runtime_file = os.path.join(run_out, "runtime.txt")
+    with open(runtime_file, 'r') as f:
+        runtime = float(f.read().strip())
+    os.remove(runtime_file)  # Clean up
 
     # Python evaluation
     from utils.evaluation import evaluate_embedding_scib
@@ -170,7 +176,6 @@ for run_id in range(1, args.run_times + 1):
         leiden_resolution=best_res,
         random_state=seed
     )
-    runtime = metrics.get("runtime_seconds", 0)
     metrics['runtime_seconds'] = runtime
     metrics['best_leiden_resolution'] = best_res
 

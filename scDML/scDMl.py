@@ -148,6 +148,11 @@ for run_id in range(1, args.run_times + 1):
     print(f"  NMI={metrics_scDML['NMI']:.4f}, ARI={metrics_scDML['ARI']:.4f}")
     print(f"  ASW_bio={metrics_scDML['ASW_bio']:.4f}, ASW_batch={metrics_scDML['ASW_batch']:.4f}")
     print(f"  AVG_bio={metrics_scDML['AVG_bio']:.4f}, AVG_batch={metrics_scDML['AVG_batch']:.4f}")
+    
+    # Save integrated adata with trajectory-ready information
+    adata.write_h5ad(os.path.join(run_out_path, "adata_scDML_integrated.h5ad"))
+    print(f"  Integrated adata saved: {run_out_path}/adata_scDML_integrated.h5ad")
+    
     print(f"Results saved to {run_out_path}")
 
 print(f"\n{'='*60}")

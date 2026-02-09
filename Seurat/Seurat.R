@@ -67,6 +67,11 @@ end_time <- Sys.time()
 runtime <- as.numeric(difftime(end_time, start_time, units="secs"))
 
 cat(sprintf("Seurat integration completed in %.2f seconds\n", runtime))
+
+# Save runtime to file for Python to read
+runtime_file <- file.path(args$save_path, "runtime.txt")
+write(runtime, file=runtime_file)
+
 # Save h5ad for Python evaluation
 library(reticulate)
 use_python("/Group16T/common/ccuc/miniconda3/envs/sctools/bin/python", required=TRUE)

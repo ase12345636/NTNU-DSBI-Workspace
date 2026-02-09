@@ -50,14 +50,11 @@ for dataset in DATASETS:
             print(f"  Skipping {tool} (not found)")
             continue
         
-        # For raw tool, there's only one round; for others, use round 1
-        if tool == "raw":
-            data_path = tool_path
-        else:
-            data_path = os.path.join(tool_path, "1")
-            if not os.path.isdir(data_path):
-                print(f"  Skipping {tool} (round 1 not found)")
-                continue
+        # All tools use round 1
+        data_path = os.path.join(tool_path, "1")
+        if not os.path.isdir(data_path):
+            print(f"  Skipping {tool} (round 1 not found)")
+            continue
         
         # Read UMAP coordinates
         umap_file = os.path.join(data_path, "umap_coordinates.csv")
@@ -339,6 +336,154 @@ for dataset in DATASETS:
             plt.close()
         else:
             print("✗ No valid data")
+
+# ============================================================
+# Task 3: Generate Runtime Comparison
+# ============================================================
+print("\n" + "=" * 60)
+print("Task 3: Generating Runtime Comparison")
+print("=" * 60)
+
+# Collect runtime data by dataset
+runtime_by_dataset = {}
+
+for dataset in DATASETS:
+    runtime_by_dataset[dataset] = {}
+    
+    for tool in TOOLS:
+        # Skip raw tool for runtime
+        if tool == "raw":
+            continue
+            
+        tool_path = os.path.join(BASE_PATH, dataset, tool)
+        
+        if not os.path.exists(tool_path):
+            continue
+        
+        print(f"Collecting runtime for {dataset}/{tool}... ", end="")
+        
+        runtime_list = []
+        
+        # Collect runtime from all rounds
+        for round_num in [1, 2, 3, 4, 5]:
+            round_path = os.path.join(tool_path, str(round_num))
+            metrics_file = os.path.join(round_path, f"{tool}_metrics.csv")
+            
+            if os.path.exists(metrics_file):
+                try:
+                    metrics = pd.read_csv(metrics_file)
+                    if 'runtime_seconds' in metrics.columns:
+                        runtime_list.append(metrics['runtime_seconds'].values[0])
+                except Exception as e:
+                    print(f"Warning: Failed to read {metrics_file}: {e}")
+        
+        if runtime_list:
+            runtime_by_dataset[dataset][tool] = runtime_list
+            print(f"✓ Found {len(runtime_list)} rounds")
+        else:
+            print("✗ No runtime data found")
+
+# Generate overall runtime comparison (all datasets)
+print(f"\nGenerating overall runtime comparison...")
+
+fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+fig.suptitle('Runtime Comparison Across Datasets', fontsize=16, fontweight='bold')
+
+for idx, dataset in enumerate(DATASETS):
+    ax = axes[idx]
+    
+    if dataset not in runtime_by_dataset or not runtime_by_dataset[dataset]:
+        ax.text(0.5, 0.5, f"No data for {dataset}", 
+               ha='center', va='center', transform=ax.transAxes)
+        ax.set_title(f"{dataset.upper()}", fontsize=14, fontweight='bold')
+        continue
+    
+    plot_data = []
+    labels = []
+    colors_list = plt.cm.tab10(np.linspace(0, 1, len(runtime_by_dataset[dataset])))
+    
+    for (tool, runtime_list), color in zip(sorted(runtime_by_dataset[dataset].items()), colors_list):
+        runtime_array = np.array(runtime_list)
+        avg_runtime = np.mean(runtime_array)
+        std_runtime = np.std(runtime_array)
+        
+        plot_data.append({
+            'tool': tool,
+            'avg': avg_runtime,
+            'std': std_runtime,
+            'values': runtime_array,
+            'color': color
+        })
+        labels.append(tool.upper())
+    
+    if plot_data:
+        # Create bar plot
+        num_tools = len(plot_data)
+        bar_width = 0.15
+        x_pos = np.arange(num_tools) * 0.15
+        avgs = [d['avg'] for d in plot_data]
+        stds = [d['std'] for d in plot_data]
+        colors = [d['color'] for d in plot_data]
+        
+        bars = ax.bar(x_pos, avgs, yerr=stds, capsize=3, color=colors, 
+                     alpha=1.0, edgecolor='black', linewidth=1.2, width=bar_width)
+        
+        # Overlay individual points
+        for i, d in enumerate(plot_data):
+            values = d['values']
+            x_jitter = np.random.normal(x_pos[i], 0.015, size=len(values))
+            x_jitter = np.clip(x_jitter, x_pos[i] - bar_width/2, x_pos[i] + bar_width/2)
+            ax.scatter(x_jitter, values, color='darkred', s=50, alpha=0.6, zorder=3)
+        
+        ax.set_xlabel("Tool", fontsize=11, fontweight='bold')
+        ax.set_ylabel("Runtime (seconds)", fontsize=11, fontweight='bold')
+        ax.set_title(f"{dataset.upper()}", fontsize=14, fontweight='bold', pad=10)
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(labels, rotation=45, ha='right', fontsize=9)
+        ax.grid(True, alpha=0.3, axis='y')
+        
+        # Add value labels on top of bars
+        for i, (x, y) in enumerate(zip(x_pos, avgs)):
+            if y < 60:
+                ax.text(x, y, f'{y:.1f}s', ha='center', va='bottom', fontsize=8)
+            elif y < 3600:
+                ax.text(x, y, f'{y/60:.1f}m', ha='center', va='bottom', fontsize=8)
+            else:
+                ax.text(x, y, f'{y/3600:.1f}h', ha='center', va='bottom', fontsize=8)
+
+plt.tight_layout()
+output_file = os.path.join(OUTPUT_DIR, "runtime_comparison.png")
+plt.savefig(output_file, dpi=300, bbox_inches='tight')
+print(f"✓ Saved overall runtime comparison to {output_file}")
+plt.close()
+
+# Generate detailed runtime table
+print(f"\nGenerating runtime summary table...")
+
+runtime_summary = []
+for dataset in DATASETS:
+    if dataset not in runtime_by_dataset or not runtime_by_dataset[dataset]:
+        continue
+    
+    for tool, runtime_list in sorted(runtime_by_dataset[dataset].items()):
+        runtime_array = np.array(runtime_list)
+        runtime_summary.append({
+            'Dataset': dataset,
+            'Tool': tool,
+            'Avg Runtime (s)': f"{np.mean(runtime_array):.2f}",
+            'Std Runtime (s)': f"{np.std(runtime_array):.2f}",
+            'Min Runtime (s)': f"{np.min(runtime_array):.2f}",
+            'Max Runtime (s)': f"{np.max(runtime_array):.2f}",
+            'Runs': len(runtime_list)
+        })
+
+if runtime_summary:
+    runtime_df = pd.DataFrame(runtime_summary)
+    output_csv = os.path.join(OUTPUT_DIR, "runtime_summary.csv")
+    runtime_df.to_csv(output_csv, index=False)
+    print(f"✓ Saved runtime summary table to {output_csv}")
+    print("\nRuntime Summary:")
+    print(runtime_df.to_string(index=False))
 
 print("\n" + "=" * 60)
 print("Analysis complete!")
