@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import scanpy as sc
+import scipy.sparse as sp_sparse
 from scipy.sparse import issparse
 from sklearn.metrics import (
     adjusted_rand_score,
@@ -60,39 +61,41 @@ def compute_overcorrection_from_adata(
     adata,
     embed_key="X_pca",
     celltype_col="celltype",
-    batch_col="batch",
-    k=15,
-    baseline=None,
+    n_neighbors=100,
+    n_pools=100,
+    n_samples_per_pool=100,
+    seed=124,
+    baseline=None
 ):
     """
-    Compute normalized over-correction score directly from AnnData.
-
+    Compute Over-correction Score using pooled sampling method.
+    
     Parameters
     ----------
     adata : AnnData
         AnnData object containing obs and embeddings
     embed_key : str
-        Key for embedding, supports:
-        - adata.obsm["X_pca"]
-        - adata.obsm["X_supcon"]
-        - adata.obsm["X_perturbed"]
+        Key for embedding in adata.obsm
     celltype_col : str
         obs column containing cell types
-    batch_col : str
-        obs column containing batch labels (not used in score)
-    k : int
-        Number of neighbors
+    n_neighbors : int
+        Number of neighbors to consider
+    n_pools : int
+        Number of pooling iterations
+    n_samples_per_pool : int
+        Number of samples per pool
+    seed : int
+        Random seed for reproducibility
     baseline : float or None
-        Raw over-correction score from *before integration*
-
+        If provided, returns (current_score - baseline)
+    
     Returns
     -------
     float
-        If baseline is None → return raw OC score  
-        If baseline is given → return normalized OC score
+        Over-correction score (or normalized score if baseline provided)
     """
-
-    # --- 1. extract embedding ---
+    
+    # 1. Extract Embedding
     if embed_key in adata.obsm.keys():
         Z = adata.obsm[embed_key]
     elif embed_key == "X":
@@ -100,30 +103,52 @@ def compute_overcorrection_from_adata(
     else:
         raise ValueError(f"Embedding '{embed_key}' not found in adata.obsm")
 
-    # --- 2. extract labels ---
-    celltypes = np.array(adata.obs[celltype_col])
-    batches = np.array(adata.obs[batch_col])
+    # 2. Prepare label data
+    celltype_series = pd.Series(adata.obs[celltype_col]).reset_index(drop=True)
+    celltype_values = celltype_series.values
+    celltype_dict = celltype_series.value_counts().to_dict()
+    
+    n_cells = Z.shape[0]
+    n_neighbors = min(n_neighbors, n_cells - 1)
+    
+    # 3. Compute neighbor matrix (exclude self)
+    nne = NearestNeighbors(n_neighbors=1 + n_neighbors, n_jobs=-1)
+    nne.fit(Z)
+    kmatrix = nne.kneighbors_graph(Z) - sp_sparse.identity(n_cells)
+    
+    # 4. Pooling random sampling
+    np.random.seed(seed)
+    total_score = 0
+    
+    for t in range(n_pools):
+        indices = np.random.choice(np.arange(n_cells), size=min(n_samples_per_pool, n_cells), replace=False)
+        pool_purity = []
+        
+        for i in indices:
+            neighbor_indices = kmatrix[i].nonzero()[1]
+            # Capping: limit neighbors based on cell type count
+            max_compare = min(celltype_dict[celltype_values[i]], n_neighbors)
+            
+            # Calculate proportion of same-type neighbors
+            if len(neighbor_indices) > 0 and max_compare > 0:
+                is_same_type = (celltype_values[neighbor_indices[:max_compare]] == celltype_values[i])
+                pool_purity.append(np.mean(is_same_type))
+            else:
+                pool_purity.append(1.0)  # No neighbors = assume pure
+            
+        total_score += np.mean(pool_purity)
 
-    # --- 3. compute neighbors ---
-    nbrs = NearestNeighbors(n_neighbors=k+1, metric="euclidean").fit(Z)
-    _, idx = nbrs.kneighbors(Z)
-    idx = idx[:, 1:]  # remove self
+    # 5. Calculate final raw OC (1 - average purity)
+    raw_oc_mean = 1 - (total_score / float(n_pools))
 
-    # --- 4. OC score ---
-    same_type_counts = np.array([
-        np.sum(celltypes[idx[i]] == celltypes[i]) for i in range(len(celltypes))
-    ])
-    oc = 1 - same_type_counts / k
-    oc_mean = float(np.mean(oc))
-
-    # --- 5. return normalized or raw ---
+    # 6. Return normalized if baseline provided
     if baseline is not None:
-        oc_norm = oc_mean - baseline
-        print(f"[OC] baseline={baseline:.4f}, integrated={oc_mean:.4f}, normalized={oc_norm:.4f}")
+        oc_norm = float(raw_oc_mean - baseline)
+        print(f"[OC] baseline={baseline:.4f}, integrated={raw_oc_mean:.4f}, normalized={oc_norm:.4f}")
         return oc_norm
-
-    print(f"[OC] raw OC = {oc_mean:.4f}")
-    return oc_mean
+    
+    print(f"[OC] raw OC = {raw_oc_mean:.4f}")
+    return float(raw_oc_mean)
 
 
 def calculate_batch_kl_py(embedding, batch_labels, n_cells=100, n_neighbors=100, replicates=200):
@@ -156,9 +181,14 @@ def calculate_lisi(embedding, adata_obs, batch_key, celltype_key):
     return ilisi_std
 
 
-def evaluate_embedding_scib(ad_tmp, embed_key="X_supcon", batch_key="batch", celltype_key="celltype", leiden_resolution=0.1, random_state=42):
+def evaluate_embedding_scib(ad_tmp, embed_key="X_supcon", batch_key="batch", celltype_key="celltype", leiden_resolution=0.1, random_state=42, compute_oc=False):
     """
     重新整合的評估管線，包含 scIB 與 scBCN 論文關鍵指標。
+    
+    Parameters
+    ----------
+    compute_oc : bool
+        Whether to compute OverCorrection score (default False, as it's slow)
     """
     results = {}
     embedding = ad_tmp.obsm[embed_key]
@@ -210,13 +240,16 @@ def evaluate_embedding_scib(ad_tmp, embed_key="X_supcon", batch_key="batch", cel
     results["AVG_batch"] = np.mean([results["ASW_batch"], results["GraphConn_celltype"]])
 
     # -------- Over-correction (過度校正) --------
-    if "X_pca" not in ad_tmp.obsm: 
-        sc.pp.pca(ad_tmp)
-    # 取得原始 PCA 的 OC 作為 baseline
-    oc_raw = compute_overcorrection_from_adata(ad_tmp, embed_key="X_pca", celltype_col=celltype_key, batch_col=batch_key)
-    # 計算當前 Embedding 的 OC 並與 baseline 相減
-    results["OverCorrection"] = compute_overcorrection_from_adata(
-        ad_tmp, embed_key=embed_key, celltype_col=celltype_key, batch_col=batch_key, baseline=oc_raw
-    )
+    if compute_oc:
+        if "X_pca" not in ad_tmp.obsm: 
+            sc.pp.pca(ad_tmp)
+        # 取得原始 PCA 的 OC 作為 baseline
+        oc_raw = compute_overcorrection_from_adata(ad_tmp, embed_key="X_pca", celltype_col=celltype_key)
+        # 計算當前 Embedding 的 OC 並與 baseline 相減
+        results["OverCorrection"] = compute_overcorrection_from_adata(
+            ad_tmp, embed_key=embed_key, celltype_col=celltype_key, baseline=oc_raw
+        )
+    else:
+        results["OverCorrection"] = np.nan
 
     return results

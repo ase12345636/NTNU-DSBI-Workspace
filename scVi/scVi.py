@@ -12,7 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from utils.dataset import preprocess_adata
 from utils.evaluation import evaluate_embedding_scib
-from utils.function import find_best_leiden_resolution
+from utils.function import find_best_leiden_resolution, MemoryTracker
 
 parser = argparse.ArgumentParser(description='Run scVi batch correction')
 parser.add_argument('--dataset_path', type=str, required=True, help='Path to input h5ad file')
@@ -20,6 +20,7 @@ parser.add_argument('--save_path', type=str, required=True, help='Path to save r
 parser.add_argument('--batch_key', type=str, default='batch', help='Batch column name')
 parser.add_argument('--celltype_key', type=str, default='celltype', help='Cell type column name')
 parser.add_argument('--run_times', type=int, default=1, help='Number of times to run the batch correction')
+parser.add_argument('--compute_oc', action='store_true', help='Compute OverCorrection score (slow)')
 args = parser.parse_args()
 
 os.makedirs(args.save_path, exist_ok=True)
@@ -37,16 +38,20 @@ for run_id in range(1, args.run_times + 1):
     run_out_path = os.path.join(args.save_path, f"scVi/{run_id}/")
     os.makedirs(run_out_path, exist_ok=True)
 
-    adata, X, y, b = preprocess_adata(adata_raw.copy(), args.celltype_key, args.batch_key)
+    if args.compute_oc:
+        adata = adata_raw.copy()
+    else:
+        adata, _, _, _ = preprocess_adata(adata_raw.copy(), args.celltype_key, args.batch_key)
     print(f"Preprocessed dataset: {adata.shape[0]} cells, {adata.shape[1]} genes")
-
     sc.tl.pca(adata, random_state=seed)
 
     print(f"\n{'='*60}")
     print("Running scVi batch correction...")
     print(f"{'='*60}\n")
 
-    # Start timing
+    # Start timing and memory tracking
+    tracker = MemoryTracker()
+    tracker.start()
     start_time = time.time()
 
     scvi.settings.seed = seed
@@ -56,6 +61,7 @@ for run_id in range(1, args.run_times + 1):
     adata.obsm["X_scVI"] = model.get_latent_representation()
     # End timing (only scVi + neighbors)
     end_time = time.time()
+    mem_metrics = tracker.stop()
     # UMAP
     sc.pp.neighbors(adata, use_rep='X_scVI', random_state=seed)    
     sc.tl.umap(adata)
@@ -130,18 +136,22 @@ for run_id in range(1, args.run_times + 1):
                                         batch_key=args.batch_key, 
                                         celltype_key=args.celltype_key, 
                                         leiden_resolution=best_resolution,
-                                        random_state=seed
+                                        random_state=seed,
+                                        compute_oc=args.compute_oc
                                         )
     
     # Add runtime to metrics
     runtime = end_time - start_time
     metrics_scVi['runtime_seconds'] = runtime
     metrics_scVi['best_leiden_resolution'] = best_resolution
+    metrics_scVi['peak_ram_mb'] = mem_metrics['peak_ram_mb']
+    metrics_scVi['peak_vram_mb'] = mem_metrics['peak_vram_mb']
     metrics_df = pd.DataFrame([metrics_scVi])
     metrics_df.to_csv(os.path.join(run_out_path, "scVi_metrics.csv"), index=False)
 
     print(f"\n[Seed {seed}] scVi metrics (with best resolution {best_resolution:.1f}):")
     print(f"  Runtime: {runtime:.2f} seconds")
+    print(f"  RAM: {mem_metrics['peak_ram_mb']:.2f} MB, VRAM: {mem_metrics['peak_vram_mb']:.2f} MB")
     print(f"  NMI={metrics_scVi['NMI']:.4f}, ARI={metrics_scVi['ARI']:.4f}")
     print(f"  ASW_bio={metrics_scVi['ASW_bio']:.4f}, ASW_batch={metrics_scVi['ASW_batch']:.4f}")
     print(f"  AVG_bio={metrics_scVi['AVG_bio']:.4f}, AVG_batch={metrics_scVi['AVG_batch']:.4f}")

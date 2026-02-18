@@ -6,14 +6,18 @@ suppressPackageStartupMessages({
   library(argparse)
   library(Matrix)
   library(future)
+  library(reticulate)
 })
 
 # Set multiprocessing
 options(future.globals.maxSize = Inf)
 plan("multicore", workers = 8)
 
+# Use the sctools conda environment python
+use_python("/Group16T/common/ccuc/miniconda3/envs/sctools/bin/python", required=TRUE)
+
 parser <- ArgumentParser(description='Run Seurat v5 batch correction')
-parser$add_argument('--data_dir', type='character', required=TRUE)
+parser$add_argument('--input_h5ad', type='character', required=TRUE)
 parser$add_argument('--save_path', type='character', required=TRUE)
 parser$add_argument('--batch_key', type='character', default='batch')
 parser$add_argument('--celltype_key', type='character', default='celltype')
@@ -24,9 +28,26 @@ args <- parser$parse_args()
 set.seed(args$seed)
 dir.create(args$save_path, showWarnings = FALSE, recursive = TRUE)
 
-cat("Loading counts and metadata from CSV...\n")
-counts <- as.matrix(read.csv(file.path(args$data_dir, "counts.csv"), row.names=1, check.names=FALSE))
-metadata <- read.csv(file.path(args$data_dir, "metadata.csv"), row.names=1)
+# Read h5ad via reticulate
+cat("Loading preprocessed data from h5ad...\n")
+sc <- import("scanpy")
+np <- import("numpy")
+pd <- import("pandas")
+
+adata <- sc$read_h5ad(args$input_h5ad)
+
+# Extract counts matrix (genes x cells) and metadata
+# reticulate auto-converts scipy sparse to R dgCMatrix (S4 sparse)
+X <- adata$X
+if (is(X, "sparseMatrix")) {
+  counts <- t(as.matrix(X))   # cells x genes -> genes x cells
+} else {
+  counts <- t(as.matrix(X))
+}
+rownames(counts) <- as.character(adata$var_names$tolist())
+colnames(counts) <- as.character(adata$obs_names$tolist())
+
+metadata <- as.data.frame(adata$obs)
 
 cat(sprintf("Dataset: %d cells, %d genes\n", ncol(counts), nrow(counts)))
 
@@ -36,49 +57,40 @@ seurat_obj <- CreateSeuratObject(
   meta.data = metadata
 )
 
-# Set data
+# Set data layer (preprocessed log-normalized values)
 seurat_obj <- SetAssayData(seurat_obj, layer="data", new.data=counts)
 
-# HVG, scale, PCA
-seurat_obj <- FindVariableFeatures(seurat_obj, selection.method="vst", nfeatures=2000, verbose=FALSE)
+# Data is already HVG-selected from Python preprocessing (same as other methods)
+# Use all genes as features (they are already HVG)
+all_features <- rownames(seurat_obj)
+
+# Set variable features explicitly on the main object (required before split)
+VariableFeatures(seurat_obj) <- all_features
+
+# Scale and PCA
 seurat_obj <- ScaleData(seurat_obj, verbose=FALSE)
 seurat_obj <- RunPCA(seurat_obj, npcs=50, verbose=FALSE, seed.use=args$seed)
 
 # Split by batch and prepare integration
 seurat_list <- SplitObject(seurat_obj, split.by=args$batch_key)
-seurat_list <- lapply(seurat_list, function(x) {
-  x <- FindVariableFeatures(x, selection.method="vst", nfeatures=2000, verbose=FALSE)
-})
 
-features <- SelectIntegrationFeatures(seurat_list, nfeatures=2000)
+# Use all features (already HVG from Python)
+features <- all_features
 
 seurat_list <- lapply(seurat_list, function(x) {
+  VariableFeatures(x) <- features
   x <- ScaleData(x, features=features, verbose=FALSE)
   x <- RunPCA(x, features=features, npcs=50, verbose=FALSE, seed.use=args$seed)
+  return(x)
 })
 
-start_time <- Sys.time()
 anchors <- FindIntegrationAnchors(seurat_list, anchor.features=features, reduction="rpca", dims=1:50, verbose=FALSE)
 seurat_integrated <- IntegrateData(anchors, dims=1:50, verbose=FALSE)
 
 seurat_integrated <- ScaleData(seurat_integrated, verbose=FALSE)
 seurat_integrated <- RunPCA(seurat_integrated, npcs=50, verbose=FALSE, seed.use=args$seed)
-end_time <- Sys.time()
-runtime <- as.numeric(difftime(end_time, start_time, units="secs"))
-
-cat(sprintf("Seurat integration completed in %.2f seconds\n", runtime))
-
-# Save runtime to file for Python to read
-runtime_file <- file.path(args$save_path, "runtime.txt")
-write(runtime, file=runtime_file)
 
 # Save h5ad for Python evaluation
-library(reticulate)
-use_python("/Group16T/common/ccuc/miniconda3/envs/sctools/bin/python", required=TRUE)
-sc <- import("scanpy")
-np <- import("numpy")
-pd <- import("pandas")
-
 adata_integrated <- sc$AnnData(X=np$array(Embeddings(seurat_integrated,"pca")),
                                obs=pd$DataFrame(seurat_integrated@meta.data))
 temp_h5ad <- file.path(args$save_path,"temp_integrated.h5ad")

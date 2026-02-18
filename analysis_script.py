@@ -18,7 +18,7 @@ plt.rcParams['font.sans-serif'] = ['Arial', 'DejaVu Sans']
 # Define paths
 BASE_PATH = "/Group16T/common/ccuc/Workspace/result"
 DATASETS = ["immune", "lung", "pancreas"]
-TOOLS = ["raw", "scanorama", "scCobra", "scDML", "scVi", "Seurat", "harmony", "scLCY"]
+TOOLS = ["raw", "scanorama", "scCobra", "scDML", "scVi", "Seurat", "harmony", "scLCY", "SMNN"]
 OUTPUT_DIR = "/Group16T/common/ccuc/Workspace/analysis_output"
 
 # Create output directory

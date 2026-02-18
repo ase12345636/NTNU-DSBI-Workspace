@@ -61,6 +61,13 @@ conda install -c conda-forge \
 install.packages(c("spatstat.geom", "spatstat.explore", "argparse", "reticulate", "aricode", "feather"))
 ```
 
+### SMNN
+#### R
+```
+install.packages("devtools")
+devtools::install_github("yycunc/SMNN")
+```
+
 ### scDML
 ```
 conda create -n scDML python==3.8.12

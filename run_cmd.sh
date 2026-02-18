@@ -18,3 +18,20 @@ bash run_script.sh \
     --batch_key tech \
     --celltype_key celltype \
     --n_runs 5 
+
+# Perturbed datasets (with OC calculation)
+bash run_script.sh \
+    --dataset_path /Group16T/common/ccuc/data/Immune_GOBP_perturbed_CD4T.h5ad \
+    --save_path /Group16T/common/ccuc/Workspace/result/immune_CD4T/ \
+    --batch_key batch \
+    --celltype_key celltype \
+    --n_runs 5 \
+    --compute_oc
+
+bash run_script.sh \
+    --dataset_path /Group16T/common/ccuc/data/Immune_GOBP_perturbed_CD14.h5ad \
+    --save_path /Group16T/common/ccuc/Workspace/result/immune_CD14/ \
+    --batch_key batch \
+    --celltype_key celltype \
+    --n_runs 5 \
+    --compute_oc 
