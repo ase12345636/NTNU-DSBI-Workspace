@@ -5,6 +5,7 @@ batch_key="batch"
 celltype_key="celltype"
 n_runs=5
 compute_oc=""
+atac=""
 
 while [[ "$#" -gt 0 ]]; do
     case $1 in
@@ -32,6 +33,10 @@ while [[ "$#" -gt 0 ]]; do
             compute_oc="--compute_oc"
             shift 1
             ;;
+        --ATAC)
+            atac="--ATAC"
+            shift 1
+            ;;
         *)
             echo "Error: Unknown parameter passed: $1"
             exit 1
@@ -54,6 +59,7 @@ echo "Save path: $save_path"
 echo "Batch key: $batch_key"
 echo "Celltype key: $celltype_key"
 echo "Compute OC: $compute_oc"
+echo "ATAC: $atac"
 
 echo "Running Raw (PCA) batch correction"
 python raw/raw.py \
@@ -61,7 +67,7 @@ python raw/raw.py \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
     --celltype_key "$celltype_key" \
-    --run_times "$n_runs" $compute_oc
+    --run_times "$n_runs" $compute_oc $atac
 
 echo "Running Harmony batch correction"
 python Harmony/Harmony.py \
@@ -69,7 +75,7 @@ python Harmony/Harmony.py \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
     --celltype_key "$celltype_key" \
-    --run_times "$n_runs" $compute_oc
+    --run_times "$n_runs" $compute_oc $atac
 
 echo "Running scVi batch correction"
 python scVi/scVi.py \
@@ -77,7 +83,7 @@ python scVi/scVi.py \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
     --celltype_key "$celltype_key" \
-    --run_times "$n_runs" $compute_oc
+    --run_times "$n_runs" $compute_oc $atac
 
 echo "Running Scanorama batch correction"
 python Scanorama/Scanorama.py \
@@ -85,22 +91,14 @@ python Scanorama/Scanorama.py \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
     --celltype_key "$celltype_key" \
-    --run_times "$n_runs" $compute_oc
+    --run_times "$n_runs" $compute_oc $atac
 
 python Seurat/Seurat.py \
     --dataset_path "$dataset_path" \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
     --celltype_key "$celltype_key" \
-    --run_times "$n_runs" $compute_oc
-
-# echo "Running SMNN batch correction"
-# python SMNN/SMNN.py \
-#     --dataset_path "$dataset_path" \
-#     --save_path "$save_path" \
-#     --batch_key "$batch_key" \
-#     --celltype_key "$celltype_key" \
-#     --run_times "$n_runs" $compute_oc
+    --run_times "$n_runs" $compute_oc $atac
 
 conda activate scDML
 echo "Running scDML batch correction"
@@ -109,7 +107,7 @@ python scDML/scDMl.py \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
     --celltype_key "$celltype_key" \
-    --run_times "$n_runs" $compute_oc
+    --run_times "$n_runs" $compute_oc $atac
 
 conda activate scCobra
 echo "Running scCobra batch correction"
@@ -118,4 +116,4 @@ python scCobra/sccobra.py \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
     --celltype_key "$celltype_key" \
-    --run_times "$n_runs" $compute_oc
+    --run_times "$n_runs" $compute_oc $atac

@@ -20,6 +20,7 @@ parser.add_argument('--batch_key', type=str, default='batch')
 parser.add_argument('--celltype_key', type=str, default='celltype')
 parser.add_argument('--run_times', type=int, default=1)
 parser.add_argument('--compute_oc', action='store_true', help='Compute OverCorrection score (slow)')
+parser.add_argument('--ATAC', action='store_true', help='ATAC mode: skip preprocess_adata and use input h5ad directly')
 args = parser.parse_args()
 
 os.makedirs(args.save_path, exist_ok=True)
@@ -31,7 +32,7 @@ print(f"Loading data from {args.dataset_path}")
 adata_raw = sc.read_h5ad(args.dataset_path)
 
 # Use shared preprocessing function for fairness (same as other methods)
-if args.compute_oc:
+if args.compute_oc or args.ATAC:
     adata = adata_raw.copy()
 else:
     adata, _, _, _ = preprocess_adata(adata_raw.copy(), args.celltype_key, args.batch_key)

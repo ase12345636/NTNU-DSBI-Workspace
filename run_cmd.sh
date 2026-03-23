@@ -35,3 +35,28 @@ bash run_script.sh \
     --celltype_key celltype \
     --n_runs 5 \
     --compute_oc 
+
+bash run_script.sh \
+    --dataset_path /Group16T/common/ccuc/data/Immune_perturbed_CD4T.h5ad \
+    --save_path /Group16T/common/ccuc/Workspace/result/immune_CD4T_batch/ \
+    --batch_key batch \
+    --celltype_key celltype \
+    --n_runs 5 \
+    --compute_oc 
+
+bash run_script.sh \
+    --dataset_path /Group16T/common/ccuc/data/Immune_perturbed_CD14.h5ad \
+    --save_path /Group16T/common/ccuc/Workspace/result/immune_CD14_batch/ \
+    --batch_key batch \
+    --celltype_key celltype \
+    --n_runs 5 \
+    --compute_oc 
+
+# ATAC
+bash run_script.sh \
+    --dataset_path /Group16T/common/ccuc/data/pbmc_multiome_scLVBags_ready.h5ad \
+    --save_path /Group16T/common/ccuc/Workspace/result/ATAC/ \
+    --batch_key batch \
+    --celltype_key celltype \
+    --n_runs 5 \
+    --ATAC 

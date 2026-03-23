@@ -21,6 +21,7 @@ parser.add_argument('--batch_key', type=str, default='batch', help='Batch column
 parser.add_argument('--celltype_key', type=str, default='celltype', help='Cell type column name')
 parser.add_argument('--run_times', type=int, default=1, help='Number of times to run the batch correction')
 parser.add_argument('--compute_oc', action='store_true', help='Compute OverCorrection score (slow)')
+parser.add_argument('--ATAC', action='store_true', help='ATAC mode: skip preprocess_adata and use input h5ad directly')
 args = parser.parse_args()
 
 os.makedirs(args.save_path, exist_ok=True)
@@ -37,7 +38,7 @@ for run_id in range(1, args.run_times + 1):
     run_out_path = os.path.join(args.save_path, f"scCobra/{run_id}/")
     os.makedirs(run_out_path, exist_ok=True)
 
-    if args.compute_oc:
+    if args.compute_oc or args.ATAC:
         adata = adata_raw.copy()
     else:
         adata, _, _, _ = preprocess_adata(adata_raw.copy(), args.celltype_key, args.batch_key)
