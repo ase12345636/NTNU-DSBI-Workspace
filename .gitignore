@@ -3,4 +3,4 @@ analysis_output/
 __pycache__/*
 *.pyc
 .vscode
-models/*
+models/

@@ -57,7 +57,7 @@ load_from_exchange <- function(input_dir) {
   list(counts = counts, metadata = metadata, barcodes = barcodes$barcode)
 }
 
-make_sce <- function(data, label_col = NULL, assay_name = "logcounts") {
+make_sce <- function(data, label_col = NULL, assay_name = "counts") {
   assays_list <- list()
   assays_list[[assay_name]] <- data$counts
   sce <- SingleCellExperiment(

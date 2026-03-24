@@ -15,6 +15,7 @@ suppressPackageStartupMessages({
   library(SingleCellExperiment)
   library(S4Vectors)
   library(CHETAH)
+  library(scuttle)
 })
 
 # ============================================================
@@ -78,6 +79,7 @@ if (args$task == "train_reference") {
   cat("Loading training data from", args$input_dir, "\n")
   data <- load_from_exchange(args$input_dir)
   reference <- make_sce(data, label_col = args$label_col)
+  reference <- logNormCounts(reference)
 
   cat(sprintf("[train_reference] Reference: %d cells, %d genes\n",
               ncol(reference), nrow(reference)))
@@ -97,6 +99,7 @@ if (args$task == "train_reference") {
   cat("Loading query data from", args$input_dir, "\n")
   data <- load_from_exchange(args$input_dir)
   query <- make_sce(data, label_col = NULL)
+  query <- logNormCounts(query)
 
   cat(sprintf("[predict] Query: %d cells, %d genes\n", ncol(query), nrow(query)))
   cat("[predict] Running CHETAHclassifier...\n")
