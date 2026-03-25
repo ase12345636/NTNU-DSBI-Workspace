@@ -130,7 +130,9 @@ if (args$task == "train_reference") {
     test = query_common,
     ref = reference_common,
     labels = as.character(colData(reference_common)[[label_col]]),
-    de.method = de_method
+    de.method = de_method,
+    assay.type.test = "counts",
+    assay.type.ref = "counts"
   )
 
   labels <- as.character(pred$labels)

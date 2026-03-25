@@ -67,7 +67,6 @@ if (args$task == "train_reference") {
               ncol(data$counts), nrow(data$counts)))
 
   reference <- CreateSeuratObject(counts = data$counts, meta.data = data$metadata)
-  reference <- NormalizeData(reference, verbose = FALSE)
   reference <- FindVariableFeatures(reference, verbose = FALSE)
   reference <- ScaleData(reference, verbose = FALSE)
   reference <- RunPCA(reference, npcs = 30, verbose = FALSE, seed.use = args$seed)
@@ -99,7 +98,6 @@ if (args$task == "train_reference") {
   cat(sprintf("[predict] Common features: %d / %d query genes\n",
               length(common_features), nrow(query)))
 
-  query <- NormalizeData(query, verbose = FALSE)
   query <- ScaleData(query, features = common_features, verbose = FALSE)
   query <- RunPCA(query, features = common_features, npcs = 30, verbose = FALSE,
                   seed.use = args$seed)

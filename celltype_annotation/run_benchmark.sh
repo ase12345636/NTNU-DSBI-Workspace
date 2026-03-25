@@ -39,58 +39,58 @@ echo "Save path: $save_path"
 echo "Run times: $n_runs"
 
 echo "Running Celltypist"
-python Celltypist/Celltypist.py \
+python3 Celltypist/Celltypist.py \
     --data_path "$dataset_path" \
     --save_path "$save_path" \
     --run_time "$n_runs"
 echo "Running Celltypist (CAF mode)"
-python Celltypist/Celltypist.py \
+python3 Celltypist/Celltypist.py \
     --data_path "$dataset_path" \
     --save_path "$save_path" \
     --run_time "$n_runs" --caf_mode
 
 echo "Running CHETAH"
-python CHETAH/CHETAH.py \
+python3 CHETAH/CHETAH.py \
     --data_path "$dataset_path" \
     --save_path "$save_path" \
     --run_time "$n_runs"
 echo "Running CHETAH (CAF mode)"
-python CHETAH/CHETAH.py \
+python3 CHETAH/CHETAH.py \
     --data_path "$dataset_path" \
     --save_path "$save_path" \
     --run_time "$n_runs" --caf_mode
 
 echo "Running Seurat"
-python Seurat/Seurat.py \
+python3 Seurat/Seurat.py \
     --data_path "$dataset_path" \
     --save_path "$save_path" \
     --run_time "$n_runs"
 echo "Running Seurat (CAF mode)"
-python Seurat/Seurat.py \
+python3 Seurat/Seurat.py \
     --data_path "$dataset_path" \
     --save_path "$save_path" \
     --run_time "$n_runs" --caf_mode
 
 conda activate scGPT
 echo "Running scGPT"
-python scGPT/scGPT.py \
+python3 scGPT/scGPT.py \
     --data_path "$dataset_path" \
     --save_path "$save_path" \
-    --run_time "$n_runs" --embedding_mode trainset
+    --run_time "$n_runs"
 echo "Running scGPT (CAF mode)"
-python scGPT/scGPT.py \
+python3 scGPT/scGPT.py \
     --data_path "$dataset_path" \
     --save_path "$save_path" \
-    --run_time "$n_runs" --embedding_mode trainset --caf_mode
+    --run_time "$n_runs" --caf_mode
 
 conda activate SingleR
 echo "Running SingleR"
-python SingleR/SingleR.py \
+python3 SingleR/SingleR.py \
     --data_path "$dataset_path" \
     --save_path "$save_path" \
     --run_time "$n_runs"
 echo "Running SingleR (CAF mode)"
-python SingleR/SingleR.py \
+python3 SingleR/SingleR.py \
     --data_path "$dataset_path" \
     --save_path "$save_path" \
     --run_time "$n_runs" --caf_mode

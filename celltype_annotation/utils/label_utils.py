@@ -392,7 +392,7 @@ def calculate_accuracy(y_true: pd.Series, y_pred: pd.Series,
         myeloid_group: If True, Macrophages/Monocytes/DC are equivalent
         fine_grained_tolerance: If True, fine-grained predictions are correct
         epithelial_tolerance: If True, Epithelial cells predictions are never wrong
-        allowed_celltypes_only: If True, only include samples where both y_true and y_pred are in ALLOWED_CELLTYPES
+        allowed_celltypes_only: If True, only include samples where y_true is in ALLOWED_CELLTYPES
         return_details: If True, return detailed breakdown
         
     Returns:
@@ -403,8 +403,11 @@ def calculate_accuracy(y_true: pd.Series, y_pred: pd.Series,
     y_pred_std = standardize_labels_series(y_pred.astype(str))
     
     # Filter by allowed cell types if requested
+    # Only filter by ground truth: predictions outside ALLOWED_CELLTYPES
+    # (e.g. CHETAH "Unassigned" / "Node*") should count as incorrect,
+    # not be silently excluded.
     if allowed_celltypes_only:
-        mask = (y_true_std.isin(ALLOWED_CELLTYPES)) & (y_pred_std.isin(ALLOWED_CELLTYPES))
+        mask = y_true_std.isin(ALLOWED_CELLTYPES)
         y_true_std = y_true_std[mask]
         y_pred_std = y_pred_std[mask]
     

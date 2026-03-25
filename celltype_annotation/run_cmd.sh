@@ -12,3 +12,13 @@ python3 analyze/plot_subtype_methods_bar_charts_csv.py \
     --results_dir /Group16T/common/ccuc/Workspace/celltype_annotation/result \
     --sclightgat_dir /Group16T/common/ccuc/scLightGAT/sclightgat_exp_results \
     --out_dir /Group16T/common/ccuc/Workspace/celltype_annotation/result/figures/subtype
+
+python3 analyze/plot_benchmark_methods_bar_charts_csv.py \
+    --results_dir /Group16T/common/ccuc/scLightGAT/benchmark/results \
+    --sclightgat_dir /Group16T/common/ccuc/scLightGAT/sclightgat_exp_results \
+    --out_dir /Group16T/common/ccuc/Workspace/celltype_annotation/result/figures
+
+python3 analyze/plot_subtype_methods_bar_charts_csv.py \
+    --results_dir /Group16T/common/ccuc/scLightGAT/benchmark/results \
+    --sclightgat_dir /Group16T/common/ccuc/scLightGAT/sclightgat_exp_results \
+    --out_dir /Group16T/common/ccuc/Workspace/celltype_annotation/result/figures/subtype

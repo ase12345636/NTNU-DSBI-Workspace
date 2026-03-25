@@ -39,8 +39,8 @@ def _normalize_log1p_10k(adata):
 
 def _annotate(adata, model_path):
     return celltypist.annotate(
-        filename=adata, model=str(model_path),
-        majority_voting=False, mode="best match", transpose_input=False,
+        filename=adata,
+        model=str(model_path),
     )
 
 
@@ -53,8 +53,9 @@ def train_celltypist(train_path, model_dir, label_col, seed, args):
     adata = load_adata(train_path)
     resolved = resolve_label_col(adata, label_col)
     model = celltypist.train(
-        X=adata, labels=resolved, transpose_input=False,
-        check_expression=False, with_mean=True, n_jobs=-1, use_SGD=True,
+        X=adata,
+        labels=resolved,
+        check_expression=False,
     )
     ensure_dir(model_dir)
     model_path = model_dir / "model.pkl"
