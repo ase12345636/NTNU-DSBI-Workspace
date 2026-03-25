@@ -62,7 +62,7 @@ echo "Compute OC: $compute_oc"
 echo "ATAC: $atac"
 
 echo "Running Raw (PCA) batch correction"
-python raw/raw.py \
+python3 raw/raw.py \
     --dataset_path "$dataset_path" \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
@@ -70,7 +70,7 @@ python raw/raw.py \
     --run_times "$n_runs" $compute_oc $atac
 
 echo "Running Harmony batch correction"
-python Harmony/Harmony.py \
+python3 Harmony/Harmony.py \
     --dataset_path "$dataset_path" \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
@@ -78,7 +78,7 @@ python Harmony/Harmony.py \
     --run_times "$n_runs" $compute_oc $atac
 
 echo "Running scVi batch correction"
-python scVi/scVi.py \
+python3 scVi/scVi.py \
     --dataset_path "$dataset_path" \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
@@ -86,14 +86,14 @@ python scVi/scVi.py \
     --run_times "$n_runs" $compute_oc $atac
 
 echo "Running Scanorama batch correction"
-python Scanorama/Scanorama.py \
+python3 Scanorama/Scanorama.py \
     --dataset_path "$dataset_path" \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
     --celltype_key "$celltype_key" \
     --run_times "$n_runs" $compute_oc $atac
 
-python Seurat/Seurat.py \
+python3 Seurat/Seurat.py \
     --dataset_path "$dataset_path" \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
@@ -102,7 +102,7 @@ python Seurat/Seurat.py \
 
 conda activate scDML
 echo "Running scDML batch correction"
-python scDML/scDMl.py \
+python3 scDML/scDMl.py \
     --dataset_path "$dataset_path" \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
@@ -111,7 +111,7 @@ python scDML/scDMl.py \
 
 conda activate scCobra
 echo "Running scCobra batch correction"
-python scCobra/sccobra.py \
+python3 scCobra/sccobra.py \
     --dataset_path "$dataset_path" \
     --save_path "$save_path" \
     --batch_key "$batch_key" \
