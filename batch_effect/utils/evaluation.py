@@ -136,7 +136,16 @@ def calculate_lisi(embedding, adata_obs, batch_key, celltype_key):
     return ilisi_std
 
 
-def evaluate_embedding_scib(ad_tmp, embed_key="X_supcon", batch_key="batch", celltype_key="celltype", leiden_resolution=0.1, random_state=42, compute_oc=False):
+def evaluate_embedding_scib(
+    ad_tmp,
+    embed_key="X_supcon",
+    batch_key="batch",
+    celltype_key="celltype",
+    leiden_resolution=0.1,
+    random_state=42,
+    compute_oc=False,
+    precomputed_cluster_key=None,
+):
     """
     重新整合的評估管線，包含 scIB 與 scBCN 論文關鍵指標。
     
@@ -144,6 +153,10 @@ def evaluate_embedding_scib(ad_tmp, embed_key="X_supcon", batch_key="batch", cel
     ----------
     compute_oc : bool
         Whether to compute OverCorrection score (default False, as it's slow)
+    precomputed_cluster_key : str or None
+        Reuse an existing cluster label column from adata.obs (for example
+        'leiden' from resolution search). If provided and present, neighbors/
+        Leiden are not recomputed for NMI/ARI.
     """
     results = {}
     embedding = ad_tmp.obsm[embed_key]
@@ -154,10 +167,18 @@ def evaluate_embedding_scib(ad_tmp, embed_key="X_supcon", batch_key="batch", cel
     b = ad_tmp.obs[batch_key].astype(str).to_numpy()
 
     # -------- Biological conservation (生物保留) --------
-    # 計算聚類標籤
-    sc.pp.neighbors(ad_tmp, n_neighbors=15, use_rep=embed_key)
-    sc.tl.leiden(ad_tmp, resolution=leiden_resolution, random_state=random_state, key_added="eval_leiden")
-    cluster_labels = ad_tmp.obs["eval_leiden"].astype(str).to_numpy()
+    # 優先重用已存在的聚類標籤，避免評估時重跑 Leiden 導致結果不一致。
+    if precomputed_cluster_key is not None and precomputed_cluster_key in ad_tmp.obs:
+        cluster_labels = ad_tmp.obs[precomputed_cluster_key].astype(str).to_numpy()
+    else:
+        sc.pp.neighbors(ad_tmp, n_neighbors=15, use_rep=embed_key)
+        sc.tl.leiden(
+            ad_tmp,
+            resolution=leiden_resolution,
+            random_state=random_state,
+            key_added="eval_leiden",
+        )
+        cluster_labels = ad_tmp.obs["eval_leiden"].astype(str).to_numpy()
 
     results["NMI"] = normalized_mutual_info_score(y, cluster_labels)
     results["ARI"] = adjusted_rand_score(y, cluster_labels)
@@ -183,6 +204,10 @@ def evaluate_embedding_scib(ad_tmp, embed_key="X_supcon", batch_key="batch", cel
     results["BatchKL"] = calculate_batch_kl_py(embedding, b)
 
     # Graph connectivity
+    # 需要 connectivities；若尚未建立才補算，避免覆寫既有圖。
+    if "connectivities" not in ad_tmp.obsp:
+        sc.pp.neighbors(ad_tmp, n_neighbors=15, use_rep=embed_key)
+
     graph_conn = 0
     unique_types = ad_tmp.obs[celltype_key].unique()
     for l in unique_types:

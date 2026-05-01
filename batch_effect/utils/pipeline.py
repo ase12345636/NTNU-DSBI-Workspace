@@ -83,11 +83,15 @@ def plot_umaps(adata, batch_key, celltype_key, save_path, tool_name):
 
 def evaluate_and_save_metrics(adata, embed_key, batch_key, celltype_key,
                                best_resolution, seed, runtime, mem_metrics,
-                               save_path, tool_name, compute_oc=False):
+                               save_path, tool_name, compute_oc=False,
+                               precomputed_cluster_key=None):
     """Evaluate the embedding, save metrics CSV, and print a summary."""
     metrics = evaluate_embedding_scib(
         adata, embed_key=embed_key, batch_key=batch_key, celltype_key=celltype_key,
-        leiden_resolution=best_resolution, random_state=seed, compute_oc=compute_oc
+        leiden_resolution=best_resolution,
+        random_state=seed,
+        compute_oc=compute_oc,
+        precomputed_cluster_key=precomputed_cluster_key,
     )
     metrics['runtime_seconds'] = runtime
     metrics['best_leiden_resolution'] = best_resolution
@@ -245,7 +249,10 @@ def run_integration_pipeline(tool_name, integrate_fn, embed_key, args,
         evaluate_and_save_metrics(
             adata, embed_key, args.batch_key, args.celltype_key,
             leiden_results['best_resolution'], seed, runtime, mem_metrics,
-            run_out_path, tool_name, compute_oc=args.compute_oc
+            run_out_path,
+            tool_name,
+            compute_oc=args.compute_oc,
+            precomputed_cluster_key='leiden',
         )
         print(f"Results saved to {run_out_path}")
 
